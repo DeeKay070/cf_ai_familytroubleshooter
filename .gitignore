@@ -11,6 +11,8 @@
 *.BASE.*
 *.LOCAL.*
 *.REMOTE.*
+!wrangler.local.jsonc
+!wrangler.remote.jsonc
 *_BACKUP_*.txt
 *_BASE_*.txt
 *_LOCAL_*.txt

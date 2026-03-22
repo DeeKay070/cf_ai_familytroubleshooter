@@ -7,6 +7,17 @@ export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
 
+    const forwardToSession = async (
+      path: string,
+      init: RequestInit,
+      bodyForKey?: { sessionId?: string; userId?: string }
+    ): Promise<Response> => {
+      const key = bodyForKey?.userId || bodyForKey?.sessionId || "default-session";
+      const id = env.CHAT_SESSION.idFromName(key);
+      const stub = env.CHAT_SESSION.get(id);
+      return stub.fetch(`https://chat-session${path}`, init);
+    };
+
     // Serve static assets
     if (url.pathname === "/" || !url.pathname.startsWith("/api/")) {
       try {
@@ -21,20 +32,23 @@ export default {
       try {
         const body = (await request.json()) as {
           sessionId?: string;
+          userId?: string;
           message?: string;
+          selectedIssueId?: string;
+          selectedDeviceName?: string;
         };
-
         const sessionId = body.sessionId || crypto.randomUUID();
 
-        const id = env.CHAT_SESSION.idFromName(sessionId);
-        const stub = env.CHAT_SESSION.get(id);
-
         try {
-          return await stub.fetch("https://chat-session/chat", {
+          return await forwardToSession(
+            "/chat",
+            {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body)
-          });
+            body: JSON.stringify({ ...body, sessionId })
+            },
+            { sessionId, userId: body.userId }
+          );
         } catch (err) {
           console.error("DO stub.fetch failed:", err);
           return new Response(
@@ -53,7 +67,7 @@ export default {
 
     if (url.pathname === "/api/reset" && request.method === "POST") {
       try {
-        const body = (await request.json()) as { sessionId?: string };
+        const body = (await request.json()) as { sessionId?: string; userId?: string };
         if (!body.sessionId) {
           return new Response(JSON.stringify({ error: "sessionId is required" }), {
             status: 400,
@@ -61,18 +75,142 @@ export default {
           });
         }
 
-        const id = env.CHAT_SESSION.idFromName(body.sessionId);
-        const stub = env.CHAT_SESSION.get(id);
-
-        return await stub.fetch("https://chat-session/reset", {
-          method: "POST"
-        });
+        return await forwardToSession(
+          "/reset",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+          },
+          body
+        );
       } catch {
         return new Response(JSON.stringify({ error: "Invalid request" }), {
           status: 400,
           headers: {
             "content-type": "application/json"
           }
+        });
+      }
+    }
+
+    if (url.pathname === "/api/tracker" && request.method === "GET") {
+      const sessionId = url.searchParams.get("sessionId") || "default-session";
+      const userId = url.searchParams.get("userId") || sessionId;
+      try {
+        return await forwardToSession(
+          `/tracker?sessionId=${encodeURIComponent(sessionId)}&userId=${encodeURIComponent(userId)}`,
+          {
+            method: "GET"
+          },
+          { sessionId, userId }
+        );
+      } catch (err) {
+        console.error("DO tracker fetch failed:", err);
+        return new Response(
+          JSON.stringify({ error: "DO fetch failed", detail: String(err) }),
+          { status: 500, headers: { "content-type": "application/json" } }
+        );
+      }
+    }
+
+    if (url.pathname === "/api/issue" && request.method === "POST") {
+      try {
+        const body = (await request.json()) as {
+          sessionId?: string;
+          userId?: string;
+          deviceName?: string;
+          title?: string;
+        };
+        return await forwardToSession(
+          "/issue",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+          },
+          body
+        );
+      } catch {
+        return new Response(JSON.stringify({ error: "Invalid request" }), {
+          status: 400,
+          headers: { "content-type": "application/json" }
+        });
+      }
+    }
+
+    if (url.pathname === "/api/step/status" && request.method === "POST") {
+      try {
+        const body = (await request.json()) as {
+          sessionId?: string;
+          userId?: string;
+          issueId?: string;
+          stepId?: string;
+          status?: string;
+        };
+        return await forwardToSession(
+          "/step/status",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+          },
+          body
+        );
+      } catch {
+        return new Response(JSON.stringify({ error: "Invalid request" }), {
+          status: 400,
+          headers: { "content-type": "application/json" }
+        });
+      }
+    }
+
+    if (url.pathname === "/api/step/save" && request.method === "POST") {
+      try {
+        const body = (await request.json()) as {
+          sessionId?: string;
+          userId?: string;
+          issueId?: string;
+          stepId?: string;
+        };
+        return await forwardToSession(
+          "/step/save",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+          },
+          body
+        );
+      } catch {
+        return new Response(JSON.stringify({ error: "Invalid request" }), {
+          status: 400,
+          headers: { "content-type": "application/json" }
+        });
+      }
+    }
+
+    if (url.pathname === "/api/step/apply-saved" && request.method === "POST") {
+      try {
+        const body = (await request.json()) as {
+          sessionId?: string;
+          userId?: string;
+          issueId?: string;
+          savedStepId?: string;
+        };
+        return await forwardToSession(
+          "/step/apply-saved",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+          },
+          body
+        );
+      } catch {
+        return new Response(JSON.stringify({ error: "Invalid request" }), {
+          status: 400,
+          headers: { "content-type": "application/json" }
         });
       }
     }

@@ -18,21 +18,50 @@
       <button id="new-chat-button" class="secondary-button">New Chat</button>
     </header>
 
-    <main class="chat-container">
-      <section id="chat-messages" class="chat-messages"></section>
+    <main class="workspace">
+      <section class="chat-container">
+        <section id="chat-messages" class="chat-messages"></section>
 
-      <div id="typing-indicator" class="typing-indicator">
-        AI is thinking...
-      </div>
+        <div id="typing-indicator" class="typing-indicator">
+          AI is thinking...
+        </div>
 
-      <div class="composer">
-        <textarea
-          id="user-input"
-          placeholder="Example: My Fire TV sees the Wi-Fi but won’t connect."
-          rows="1"
-        ></textarea>
-        <button id="send-button">Send</button>
-      </div>
+        <div class="composer">
+          <textarea
+            id="user-input"
+            placeholder="Example: My Fire TV sees the Wi-Fi but won’t connect."
+            rows="1"
+          ></textarea>
+          <button id="send-button">Send</button>
+        </div>
+      </section>
+
+      <aside class="tracker-panel">
+        <h2>Issue Tracker</h2>
+
+        <div class="tracker-section">
+          <label for="issue-device-input">Device</label>
+          <input id="issue-device-input" type="text" placeholder="e.g. Samsung TV" />
+          <label for="issue-title-input">Issue</label>
+          <input id="issue-title-input" type="text" placeholder="e.g. Wi-Fi disconnecting" />
+          <button id="create-issue-button" class="secondary-button">Create Issue</button>
+        </div>
+
+        <div class="tracker-section">
+          <h3>Devices & Issues</h3>
+          <div id="tracker-devices" class="tracker-devices"></div>
+        </div>
+
+        <div class="tracker-section">
+          <h3>Exact Fix Steps</h3>
+          <div id="tracker-steps" class="tracker-steps"></div>
+        </div>
+
+        <div class="tracker-section">
+          <h3>Saved Steps</h3>
+          <div id="saved-steps" class="saved-steps"></div>
+        </div>
+      </aside>
     </main>
 
     <footer class="app-footer">

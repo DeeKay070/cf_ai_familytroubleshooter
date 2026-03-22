@@ -34,3 +34,16 @@ For remote preview checks, run `npm run dev:remote`.
 ```bash
 npm install
 npm run dev:local
+```
+
+## Tracker capabilities
+- Auto + manual device detection
+- Multiple concurrent issues per device
+- Side-panel issue tracker with exact troubleshooting steps
+- Step outcomes: `pending`, `done`, `fixed`, `not_fixed`, `skipped`
+- Per-user saved troubleshooting step library
+- Explicit save confirmation message: "I saved that troubleshooting step for future use."
+
+## API paths
+- Existing paths unchanged: `POST /api/chat`, `POST /api/reset`
+- Additional tracker APIs: `GET /api/tracker`, `POST /api/issue`, `POST /api/step/status`, `POST /api/step/save`, `POST /api/step/apply-saved`

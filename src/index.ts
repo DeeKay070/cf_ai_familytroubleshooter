@@ -1,104 +1,82 @@
-/**
- * LLM Chat Application Template
- *
- * A simple chat application using Cloudflare Workers AI.
- * This template demonstrates how to implement an LLM-powered chat interface with
- * streaming responses using Server-Sent Events (SSE).
- *
- * @license MIT
- */
-import { Env, ChatMessage } from "./types";
+import { Env } from "./types";
+import { ChatSession } from "./session";
 
-// Model ID for Workers AI model
-// https://developers.cloudflare.com/workers-ai/models/
-const MODEL_ID = "@cf/meta/llama-3.1-8b-instruct-fp8";
-
-// Default system prompt
-const SYSTEM_PROMPT =
-	"You are a helpful, friendly assistant. Provide concise and accurate responses.";
+export { ChatSession };
 
 export default {
-	/**
-	 * Main request handler for the Worker
-	 */
-	async fetch(
-		request: Request,
-		env: Env,
-		ctx: ExecutionContext,
-	): Promise<Response> {
-		const url = new URL(request.url);
+  async fetch(request: Request, env: Env): Promise<Response> {
+    const url = new URL(request.url);
 
-		// Handle static assets (frontend)
-		if (url.pathname === "/" || !url.pathname.startsWith("/api/")) {
-			return env.ASSETS.fetch(request);
-		}
+    // Serve static assets
+    if (url.pathname === "/" || !url.pathname.startsWith("/api/")) {
+      try {
+        return await env.ASSETS.fetch(request);
+      } catch (err) {
+        console.error("ASSETS.fetch failed:", err);
+        return new Response("Asset service error", { status: 500 });
+      }
+    }
 
-		// API Routes
-		if (url.pathname === "/api/chat") {
-			// Handle POST requests for chat
-			if (request.method === "POST") {
-				return handleChatRequest(request, env);
-			}
+    if (url.pathname === "/api/chat" && request.method === "POST") {
+      try {
+        const body = (await request.json()) as {
+          sessionId?: string;
+          message?: string;
+        };
 
-			// Method not allowed for other request types
-			return new Response("Method not allowed", { status: 405 });
-		}
+        const sessionId = body.sessionId || crypto.randomUUID();
 
-		// Handle 404 for unmatched routes
-		return new Response("Not found", { status: 404 });
-	},
+        const id = env.CHAT_SESSION.idFromName(sessionId);
+        const stub = env.CHAT_SESSION.get(id);
+
+        try {
+          return await stub.fetch("https://chat-session/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body)
+          });
+        } catch (err) {
+          console.error("DO stub.fetch failed:", err);
+          return new Response(
+            JSON.stringify({ error: "DO fetch failed", detail: String(err) }),
+            { status: 500, headers: { "content-type": "application/json" } }
+          );
+        }
+      } catch (err) {
+        console.error("/api/chat bad request:", err);
+        return new Response(JSON.stringify({ error: "Invalid request" }), {
+          status: 400,
+          headers: { "content-type": "application/json" }
+        });
+      }
+    }
+
+    if (url.pathname === "/api/reset" && request.method === "POST") {
+      try {
+        const body = (await request.json()) as { sessionId?: string };
+        if (!body.sessionId) {
+          return new Response(JSON.stringify({ error: "sessionId is required" }), {
+            status: 400,
+            headers: { "content-type": "application/json" }
+          });
+        }
+
+        const id = env.CHAT_SESSION.idFromName(body.sessionId);
+        const stub = env.CHAT_SESSION.get(id);
+
+        return await stub.fetch("https://chat-session/reset", {
+          method: "POST"
+        });
+      } catch {
+        return new Response(JSON.stringify({ error: "Invalid request" }), {
+          status: 400,
+          headers: {
+            "content-type": "application/json"
+          }
+        });
+      }
+    }
+
+    return new Response("Not found", { status: 404 });
+  }
 } satisfies ExportedHandler<Env>;
-
-/**
- * Handles chat API requests
- */
-async function handleChatRequest(
-	request: Request,
-	env: Env,
-): Promise<Response> {
-	try {
-		// Parse JSON request body
-		const { messages = [] } = (await request.json()) as {
-			messages: ChatMessage[];
-		};
-
-		// Add system prompt if not present
-		if (!messages.some((msg) => msg.role === "system")) {
-			messages.unshift({ role: "system", content: SYSTEM_PROMPT });
-		}
-
-		const stream = await env.AI.run(
-			MODEL_ID,
-			{
-				messages,
-				max_tokens: 1024,
-				stream: true,
-			},
-			{
-				// Uncomment to use AI Gateway
-				// gateway: {
-				//   id: "YOUR_GATEWAY_ID", // Replace with your AI Gateway ID
-				//   skipCache: false,      // Set to true to bypass cache
-				//   cacheTtl: 3600,        // Cache time-to-live in seconds
-				// },
-			},
-		);
-
-		return new Response(stream, {
-			headers: {
-				"content-type": "text/event-stream; charset=utf-8",
-				"cache-control": "no-cache",
-				connection: "keep-alive",
-			},
-		});
-	} catch (error) {
-		console.error("Error processing chat request:", error);
-		return new Response(
-			JSON.stringify({ error: "Failed to process request" }),
-			{
-				status: 500,
-				headers: { "content-type": "application/json" },
-			},
-		);
-	}
-}

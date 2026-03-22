@@ -22,15 +22,14 @@
 		"@types/node": "24.10.1",
 		"typescript": "5.9.3",
 		"vitest": "3.2.4",
-		"wrangler": "4.56.0"
+		"wrangler": "^4.76.0"
 	},
 	"private": true,
 	"scripts": {
 		"cf-typegen": "wrangler types",
 		"check": "tsc --noEmit && wrangler deploy --dry-run",
-		"deploy": "wrangler deploy",
-		"dev": "wrangler dev",
-		"start": "wrangler dev",
-		"test": "vitest"
+		"dev:local": "wrangler dev -c wrangler.local.jsonc",
+		"dev:remote": "wrangler dev --remote -c wrangler.remote.jsonc",
+		"deploy": "wrangler deploy -c wrangler.local.jsonc"
 	}
 }

@@ -28,6 +28,7 @@
 	"scripts": {
 		"cf-typegen": "wrangler types",
 		"check": "tsc --noEmit && wrangler deploy --dry-run",
+		"dev": "wrangler dev -c wrangler.local.jsonc",
 		"dev:local": "wrangler dev -c wrangler.local.jsonc",
 		"dev:remote": "wrangler dev --remote -c wrangler.remote.jsonc",
 		"deploy": "wrangler deploy -c wrangler.local.jsonc"

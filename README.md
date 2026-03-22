@@ -19,8 +19,18 @@ It helps users troubleshoot devices the way a patient, tech-savvy family member 
 - Per-session memory with Durable Objects
 - Helps with phones, TVs, Wi-Fi, laptops, printers, and other electronics
 
+## Assignment criteria coverage
+- LLM: Workers AI model in `src/session.ts` via `env.AI.run(...)`
+- Workflow / coordination: Durable Object `ChatSession` handles session coordination
+- User input: browser chat UI in `public/index.html` + `public/chat.js`
+- Memory / state: per-session chat history in Durable Object storage (`this.ctx.storage`)
+
 ## Local development
+
+`npm run dev` is an alias to `npm run dev:local`.
+
+For remote preview checks, run `npm run dev:remote`.
 
 ```bash
 npm install
-npm run dev
+npm run dev:local

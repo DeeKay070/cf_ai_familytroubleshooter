@@ -1,7 +1,7 @@
 import { DurableObject } from "cloudflare:workers";
 import { Env, ChatMessage } from "./types";
 
-const MODEL_ID = "@cf/meta/llama-3.1-8b-instruct-fast" as keyof AiModels;
+const MODEL_ID = "@cf/meta/llama-3.3-70b-instruct-fp8-fast" as keyof AiModels;
 
 const SYSTEM_PROMPT = `
 You are a patient, calm, tech-savvy family tech helper.
@@ -39,7 +39,16 @@ export class ChatSession extends DurableObject<Env> {
       return new Response("Not found", { status: 404 });
     }
 
-    const body = (await request.json()) as { message?: string };
+    let body: { message?: string };
+    try {
+      body = (await request.json()) as { message?: string };
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid request" }), {
+        status: 400,
+        headers: { "content-type": "application/json" }
+      });
+    }
+
     const message = body.message?.trim();
 
     if (!message) {
